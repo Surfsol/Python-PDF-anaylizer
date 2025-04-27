@@ -1,0 +1,19 @@
+# Ignore virtual environment
+venv/
+
+# Ignore Streamlit local config (optional)
+.streamlit/
+
+# Ignore Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore Jupyter notebooks checkpoints (if you use later)
+.ipynb_checkpoints/
+
+# Ignore macOS specific files
+.DS_Store
+
+# Ignore environment variables file (if you ever create one)
+.env
