@@ -3,6 +3,7 @@ import pdfplumber
 import pandas as pd
 import io
 import re
+from datetime import datetime
 #from pdf_parser import parse_pdf_to_table
 
 st.title("PDF Data Extraction and Analysis App")
@@ -48,6 +49,16 @@ if uploaded_file is not None:
              #save text and coordinate into a list
                 if obj['x0'] not in coordinate_dict['foia']:
                     coordinate_dict['foia'].append(obj['x0'])
+            #Dates 
+             if obj['x0'] > 680:
+                try:
+                    datetime.strptime(obj['text'], "%m/%d/%Y")
+                    print(obj['text'], obj['x0'], obj['x1'])
+                    if len(coordinate_dict['open']) < 1:
+                        coordinate_dict['open'] = obj['x0']
+                        coordinate_dict['close'] = obj['x1']
+                except:
+                    continue
         print(coordinate_dict)
 
     #     #replace whitespace with underline
