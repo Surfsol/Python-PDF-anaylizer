@@ -81,5 +81,5 @@ venv\Scripts\activate
 4. **Run the App**
 
    ```bash
-   streamlit run app.py
+   python -m streamlit run app.py
    ```
