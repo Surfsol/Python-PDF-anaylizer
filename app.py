@@ -10,6 +10,9 @@ st.title("PDF Data Extraction and Analysis App")
 
 uploaded_file = st.file_uploader("Upload a PDF", type=["pdf"])
 
+#list to capture foia
+foia_list = []
+
 if uploaded_file is not None:
     st.success(f"Uploaded file: {uploaded_file.name}")
     
@@ -22,6 +25,7 @@ if uploaded_file is not None:
 
     all_rows = []
     
+    print('NEWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW')
 
     # Open with pdfplumber
     with pdfplumber.open(pdf_file) as pdf:
@@ -34,7 +38,7 @@ if uploaded_file is not None:
 
         # Extract word object from the page
         word_obj_list = page.extract_words()
-        print(word_obj_list[0])
+        # print(word_obj_list[0])
 
         #list to capture coordinates
         coordinate_dict = {
@@ -43,23 +47,77 @@ if uploaded_file is not None:
             'close': []
             }
         #find coordinates 
-        for obj in word_obj_list:
-             # if the string in obj['text'] begins with 'F-'
-             if obj['text'][0] == 'F' and obj['text'][1] == '-':
-             #save text and coordinate into a list
-                if obj['x0'] not in coordinate_dict['foia']:
-                    coordinate_dict['foia'].append(obj['x0'])
-            #Dates 
-             if obj['x0'] > 680:
-                try:
-                    datetime.strptime(obj['text'], "%m/%d/%Y")
-                    print(obj['text'], obj['x0'], obj['x1'])
-                    if len(coordinate_dict['open']) < 1:
-                        coordinate_dict['open'] = obj['x0']
-                        coordinate_dict['close'] = obj['x1']
-                except:
+
+       
+
+        # for obj in word_obj_list:
+        #      # if the string in obj['text'] begins with 'F-'
+        #      if obj['text'][0] == 'F' and obj['text'][1] == '-':
+        #      #save text and coordinate into a list
+        #         if obj['x0'] not in coordinate_dict['foia']:
+        #             coordinate_dict['foia'].append(obj['x0'])
+        #     #Dates 
+        #      if obj['x0'] > 680:
+        #         try:
+        #             datetime.strptime(obj['text'], "%m/%d/%Y")
+        #             print(obj['text'], obj['x0'], obj['x1'])
+        #             if len(coordinate_dict['open']) < 1:
+        #                 coordinate_dict['open'] = obj['x0']
+        #                 coordinate_dict['close'] = obj['x1']
+        #             elif coordinate_dict['open'] > obj['x0']:
+        #                 print('in else if')
+        #                 coordinate_dict['open'] = obj['x0']
+        #                 coordinate_dict['close'] = obj['x1']
+        #         except:
+        #             continue
+        # print(coordinate_dict)
+        coordinate_dict= {'foia': [19.84], 'open': 685.4, 'close': 718.579757588}
+
+        
+        
+        #combine FOIA numbers and dates
+        # {id : '', 'open': date, close: date or none}
+        for page in pdf.pages:
+            print('in page', page)
+            word_obj_list = page.extract_words()
+            f_obj = {'foia':None, 'open': None, 'close': None, 'report': '10/01/2024 - 12/31/2024', 'page': page}
+            for obj in word_obj_list:      
+                if abs(obj['x0'] - coordinate_dict['foia'][0]) <= 2:
+                    if obj['text'][0] == 'F':
+                        f_obj['foia'] = obj['text']
+                    elif len(obj['text']) == 5 and obj['text'][0].isdigit():
+                        full_id = f_obj['foia'] + obj['text']
+                        f_obj['foia'] = full_id
+                        # print('after combine',f_obj)
+                        if f_obj['open'] != None:
+                            # print('complete', f_obj)
+                            foia_list.append(f_obj.copy())
+                            print('After push append', page, foia_list)
+                            f_obj = {'foia': None, 'open': None, 'close': None, 'report': '10/01/2024 - 12/31/2024', 'page': page}
                     continue
-        print(coordinate_dict)
+
+                elif obj['x0'] >= coordinate_dict['open'] - 2 and obj['x0'] < coordinate_dict['close']:
+                    print('inside open', obj['text'])
+                    try:
+                        datetime.strptime(obj['text'], "%m/%d/%Y")
+                        f_obj['open'] = obj['text']
+                        
+                    except:
+                        continue
+                elif obj['x0'] >= coordinate_dict['close']:
+                    # print('close', coordinate_dict['open'], 'xo', obj['x0'], obj['text'])
+                    try:
+                        datetime.strptime(obj['text'], "%m/%d/%Y")
+                        f_obj['close'] = obj['text']
+                        print('inside close', obj['text'], {f_obj})
+                    except:
+                        continue
+                    
+                continue
+    df = pd.DataFrame(foia_list)
+    st.dataframe(df)
+                   
+
 
     #     #replace whitespace with underline
     #     text_under = raw_text.replace(' ', '_')
