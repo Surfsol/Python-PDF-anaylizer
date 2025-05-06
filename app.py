@@ -4,6 +4,8 @@ import pandas as pd
 import io
 import re
 from datetime import datetime
+from coordinates import coordinates_fun
+from coordinates import coord_list_fun
 #from pdf_parser import parse_pdf_to_table
 
 
@@ -59,66 +61,69 @@ if uploaded_file is not None:
        # 33333 Each page need to run 
 
         for obj in word_obj_list:
+             
              # if the string in obj['text'] begins with 'F-'
              if obj['text'][0] == 'F' and obj['text'][1] == '-':
+                
              #save text and coordinate into a list
                 if coordinate_dict['foia'] == 0:
                     coordinate_dict['foia'] = obj['x0']
+                    coordinates_fun(obj, 'foia')
                 elif coordinate_dict['foia'] > obj['x0']:
                     coordinate_dict['foia'] = obj['x0']
+                    coordinates_fun(obj, 'foia')
  
             #Dates 
              if obj['x0'] > page.width * .8:
                 try:
                     match = re.search(r"\b\d{1,2}/\d{1,2}/\d{4}\b", obj['text'])
                     if match:
-                        print(obj['text'], obj['x0'], obj['x1'])
+                        #print(obj['text'], obj['x0'], obj['x1'])
                         if coordinate_dict['open'] == 0:
                             coordinate_dict['open'] = obj['x0']
                             coordinate_dict['close'] = obj['x1']
+                            coordinates_fun(obj, 'date')
                         elif coordinate_dict['open'] > obj['x0']:
                             print('in else if')
                             coordinate_dict['open'] = obj['x0']
                             coordinate_dict['close'] = obj['x1']
+                            coordinates_fun(obj, 'date')
                 except:
                     continue
+        print('77777777777777777777777777777777777', coord_list_fun())
         print(coordinate_dict)
         # coordinate_dict= {'foia': 19.84, 'open': 685.4, 'close': 718.579757588}
 
-        
-        
-        #combine FOIA numbers and dates
-        # {id : '', 'open': date, close: date or none}
+    
         for page in pdf.pages:
-            print('width', page.width, page.width * .8)
+            #print('width', page.width, page.width * .8)
             text = page.extract_text()
-
-
-            print('in page', page)
+            
+            #print('in page', page)
             word_obj_list = page.extract_words()
-            f_obj = {'foia':None, 'open': None, 'close': None, 'report': '10/01/2024', 'page': page}
+            f_obj = {'foia':None, 'open': None, 'close': None, 'report': '10/01/2024', 'page': page.page_number}
             for obj in word_obj_list:    
                 if abs(obj['x0'] - coordinate_dict['foia']) <= 2:
-                    print('ENTER 1ST AREA', obj['text'], len(obj['text']))
+                    #print('ENTER 1ST AREA', obj['text'], len(obj['text']))
                     if len(obj['text']) > 4 and not obj['text'][0].isdigit():
-                        print('ENTER 1ST AREA 2nd', obj['text'])
+                        #print('ENTER 1ST AREA 2nd', obj['text'])
                         f_obj['foia'] = obj['text']
                     elif len(obj['text']) == 5 and obj['text'][0].isdigit():
-                        print('before full id', f_obj['foia'], obj['text'], page, obj['x0'] )
+                        #print('before full id', f_obj['foia'], obj['text'], page, obj['x0'] )
                         full_id = f_obj['foia'] + obj['text']
                         f_obj['foia'] = full_id
                         # print('after combine',f_obj)
                         if f_obj['open'] != None:
                             # print('complete', f_obj)
                             foia_list.append(f_obj.copy())
-                            print('After push append', page, foia_list)
+                            #print('After push append', page, foia_list)
                             if f_obj['close'] != None and datetime.strptime(f_obj['report'], "%m/%d/%Y") > datetime.strptime(f_obj['close'], "%m/%d/%Y"):
                                 foia_late.append(f_obj.copy())
-                            f_obj = {'foia': None, 'open': None, 'close': None, 'report': '10/01/2024', 'page': page}
+                            f_obj = {'foia': None, 'open': None, 'close': None, 'report': '10/01/2024', 'page': page.page_number}
                     continue
 
                 elif obj['x0'] >= coordinate_dict['open'] - 2 and obj['x0'] < coordinate_dict['close']:
-                    print('inside open', obj['text'])
+                    #print('inside open', obj['text'])
 
                     try:
                         match = re.search(r"\b\d{1,2}/\d{1,2}/\d{4}\b", obj['text'])
@@ -128,11 +133,11 @@ if uploaded_file is not None:
                         pass
                     
                 elif obj['x0'] >= coordinate_dict['close']:
-                    # print('close', coordinate_dict['open'], 'xo', obj['x0'], obj['text'])
+                    # print('close', coordinate_dict['open'], 'x0', obj['x0'], obj['text'])
                     try:
                         datetime.strptime(obj['text'], "%m/%d/%Y")
                         f_obj['close'] = obj['text']
-                        print('inside close', obj['text'], {f_obj})
+                        #print('inside close', obj['text'], {f_obj})
                         
 
                     except:
