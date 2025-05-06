@@ -53,18 +53,20 @@ if uploaded_file is not None:
         #list to capture coordinates
         coordinate_dict = {
             'foia': 0,
+            'name': 0,
             'open': 0,
-            'close': 0
+            'close': 0,
+            'y-range': 0
             }
         #find coordinates 
-
+        top_y = 0
        # 33333 Each page need to run 
 
         for obj in word_obj_list:
-             
+             print('width', page.width, page.width * .05, page.width * .10)
              # if the string in obj['text'] begins with 'F-'
              if obj['text'][0] == 'F' and obj['text'][1] == '-':
-                
+                top_y = obj['top']
              #save text and coordinate into a list
                 if coordinate_dict['foia'] == 0:
                     coordinate_dict['foia'] = obj['x0']
@@ -72,7 +74,24 @@ if uploaded_file is not None:
                 elif coordinate_dict['foia'] > obj['x0']:
                     coordinate_dict['foia'] = obj['x0']
                     coordinates_fun(obj, 'foia')
- 
+
+             # find y-range
+             if coordinate_dict['foia'] != 0 and top_y != 0 and abs(obj['x0'] - coordinate_dict['foia']) < 2:
+                dif = obj['bottom'] - top_y
+                if coordinate_dict['y-range'] == 0:
+                    coordinate_dict['y-range'] = dif
+                elif dif < coordinate_dict['y-range']:
+                    coordinate_dict['y-range'] = dif
+                top_y = 0
+                    
+            #Name
+             if obj['x0'] > page.width * .05 and obj['x0'] < page.width * .10 and len(obj['text']) > 3:
+                 if coordinate_dict['name'] == 0:
+                     coordinate_dict['name'] = obj['x0']
+                 elif coordinate_dict['name'] > obj['x0']:
+                    coordinate_dict['name'] = obj['x0']
+                    coordinates_fun(obj, 'name')
+                
             #Dates 
              if obj['x0'] > page.width * .8:
                 try:
@@ -101,7 +120,7 @@ if uploaded_file is not None:
             
             #print('in page', page)
             word_obj_list = page.extract_words()
-            f_obj = {'foia':None, 'open': None, 'close': None, 'report': '10/01/2024', 'page': page.page_number}
+            f_obj = {'foia':"", 'name': "", 'open': None, 'close': None, 'report': '10/01/2024', 'page': page.page_number}
             for obj in word_obj_list:    
                 if abs(obj['x0'] - coordinate_dict['foia']) <= 2:
                     #print('ENTER 1ST AREA', obj['text'], len(obj['text']))
