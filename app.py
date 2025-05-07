@@ -63,7 +63,6 @@ if uploaded_file is not None:
        # 33333 Each page need to run 
 
         for obj in word_obj_list:
-             print('width', page.width, page.width * .05, page.width * .10)
              # if the string in obj['text'] begins with 'F-'
              if obj['text'][0] == 'F' and obj['text'][1] == '-':
                 top_y = obj['top']
@@ -76,7 +75,7 @@ if uploaded_file is not None:
                     coordinates_fun(obj, 'foia')
 
              # find y-range
-             if coordinate_dict['foia'] != 0 and top_y != 0 and abs(obj['x0'] - coordinate_dict['foia']) < 2:
+             if coordinate_dict['foia'] != 0 and top_y != 0 and abs(obj['x0'] - coordinate_dict['foia']) < 2 and obj['text'][0].isdigit():
                 dif = obj['bottom'] - top_y
                 if coordinate_dict['y-range'] == 0:
                     coordinate_dict['y-range'] = dif
@@ -110,35 +109,32 @@ if uploaded_file is not None:
                 except:
                     continue
         print('77777777777777777777777777777777777', coord_list_fun())
-        print(coordinate_dict)
+        print('COORDINATE DICTIONARY',coordinate_dict)
         # coordinate_dict= {'foia': 19.84, 'open': 685.4, 'close': 718.579757588}
 
     
         for page in pdf.pages:
-            #print('width', page.width, page.width * .8)
             text = page.extract_text()
             
-            #print('in page', page)
             word_obj_list = page.extract_words()
-            f_obj = {'foia':"", 'name': "", 'open': None, 'close': None, 'report': '10/01/2024', 'page': page.page_number}
-            for obj in word_obj_list:    
+            f_obj = {'foia':"", 'name': "", 'open': None, 'close': None, 'report': '10/01/2024', 'page': page.page_number, 'top': 0}
+            for obj in word_obj_list: 
                 if abs(obj['x0'] - coordinate_dict['foia']) <= 2:
-                    #print('ENTER 1ST AREA', obj['text'], len(obj['text']))
+                    # print('obj top - foia top < top_y', obj['top'] , f_obj['top'] , coordinate_dict['y-range'] )
                     if len(obj['text']) > 4 and not obj['text'][0].isdigit():
-                        #print('ENTER 1ST AREA 2nd', obj['text'])
                         f_obj['foia'] = obj['text']
-                    elif len(obj['text']) == 5 and obj['text'][0].isdigit():
-                        #print('before full id', f_obj['foia'], obj['text'], page, obj['x0'] )
+                        f_obj['top'] = obj['top']
+                    # Last numbers of FOIA
+                    elif len(obj['text']) == 5 and obj['text'][0].isdigit() and obj['top'] - f_obj['top'] < coordinate_dict['y-range']: 
+                        # complete full FOIA id
                         full_id = f_obj['foia'] + obj['text']
                         f_obj['foia'] = full_id
-                        # print('after combine',f_obj)
-                        if f_obj['open'] != None:
-                            # print('complete', f_obj)
+                        # if already have date open add to foia list
+                        if f_obj['open'] != None or f_obj['close'] != None:
+                            # print('complete', f_obj), check to see if close exists
                             foia_list.append(f_obj.copy())
-                            #print('After push append', page, foia_list)
-                            if f_obj['close'] != None and datetime.strptime(f_obj['report'], "%m/%d/%Y") > datetime.strptime(f_obj['close'], "%m/%d/%Y"):
-                                foia_late.append(f_obj.copy())
-                            f_obj = {'foia': None, 'open': None, 'close': None, 'report': '10/01/2024', 'page': page.page_number}
+                        #reset f_obj
+                        f_obj = {'foia': None, 'open': None, 'close': None, 'report': '10/01/2024', 'page': page.page_number, 'top': 0}
                     continue
 
                 elif obj['x0'] >= coordinate_dict['open'] - 2 and obj['x0'] < coordinate_dict['close']:
@@ -146,8 +142,19 @@ if uploaded_file is not None:
 
                     try:
                         match = re.search(r"\b\d{1,2}/\d{1,2}/\d{4}\b", obj['text'])
-                        if match:
+                        # check match and range, check for close date
+                        # if get to date and FOIA is missing, make FOIA Missing and attach
+                        if match and f_obj['foia'] == None:
                              f_obj['open'] = match.group()
+                             f_obj['top'] = obj['top']
+                             f_obj['foia'] = "Missing"
+                             # push 
+                             foia_list.append(f_obj.copy())
+                            #reset f_obj
+                             f_obj = {'foia': None, 'open': None, 'close': None, 'report': '10/01/2024', 'page': page.page_number, 'top': 0}
+                        elif match:
+                            f_obj['open'] = match.group()
+                             
                     except:
                         pass
                     
