@@ -114,22 +114,21 @@ if uploaded_file is not None:
 
             coordinate_page = coord_page(word_obj_list, page)
 
-            foia_id = ''
+            item['foia'] = 'Missing'
             for obj in word_obj_list:
-                
-                if obj['bottom'] < (item['top'] + 7) and obj['top'] > (item['top'] - 7) and obj['x0'] < coordinate_page['name'] and not obj['text'][0].isdigit():
-                    print('8888', obj['text'] )
-                    foia_id = obj['text']
-                if obj['top'] < item['bottom'] and obj['bottom'] < (item['bottom'] + 7) and obj['x0'] < coordinate_page['name'] and obj['text'][0].isdigit():
-                    foia_2 = obj['text']
-                    item['foia'] = foia_id + foia_2
+                # search within x and y range
+                if obj['x0'] < coordinate_page['name'] and obj['top'] > (item['top'] - 7) and obj['bottom'] < (item['top'] + 14):
+                    if item['foia'] == 'Missing':
+                        item['foia'] = obj['text']
+                    else:
+                        item['foia'] = item['foia'] + obj['text']
 
                 # check bottom range
                 if obj['bottom'] < (item['top'] + 13) and obj['top'] > (item['top'] - 7) and obj['x0'] > coordinate_page['name'] and obj['x0'] < coordinate_page['name_end']:
                     if item['name'] == '':
                         item['name'] = obj['text']
                     else:
-                        item['name'] = item['name'] + obj['text']
+                        item['name'] = item['name'] + " " + obj['text']
                     
 
         st.write('Updated Out of Range')
