@@ -4,8 +4,8 @@ import pandas as pd
 import io
 import re
 from datetime import datetime
-from coordinates import coordinates_fun
-from coordinates import coord_list_fun
+from coordinates import coord_page
+
 #from pdf_parser import parse_pdf_to_table
 
 
@@ -48,87 +48,23 @@ if uploaded_file is not None:
         # Extract word object from the page
         word_obj_list = page.extract_words()
 
-        #list to capture coordinates
-        coordinate_dict = {
-            'foia': 0,
-            'name': 0,
-            'name_end': 0,
-            'open': 0,
-            'close': 0,
-            'y-range': 0,
-            'f_top':0,
-            'f_bottom':0,
-            'n_top':0,
-            'n_bottom':0,
-            'd_top':0,
-            'd_bottom':0,
-            }
-        #find coordinates 
-        top_y = 0
+        
        # 33333 Each page need to run 
 
-        for obj in word_obj_list:
-             # if the string in obj['text'] begins with 'F-'
-             if obj['text'][0] == 'F' and obj['text'][1] == '-':
-                top_y = obj['top']
-                coordinate_dict['f_top'] = obj['top']
-                coordinate_dict['f_bottom'] = obj['bottom']
-             #save text and coordinate into a list
-                if coordinate_dict['foia'] == 0:
-                    coordinate_dict['foia'] = obj['x0']
-                    #coordinates_fun(obj, 'foia')
-                elif coordinate_dict['foia'] > obj['x0']:
-                    coordinate_dict['foia'] = obj['x0']
-                    #coordinates_fun(obj, 'foia')
+        coordinate_dict = coord_page( word_obj_list, page)
 
-             # find y-range
-             if coordinate_dict['foia'] != 0 and top_y != 0 and abs(obj['x0'] - coordinate_dict['foia']) < 2 and obj['text'][0].isdigit():
-                coordinate_dict['n_top'] = obj['top']
-                coordinate_dict['n_bottom'] = obj['bottom']
-                dif = obj['bottom'] - top_y
-                if coordinate_dict['y-range'] == 0:
-                    coordinate_dict['y-range'] = dif
-                elif dif < coordinate_dict['y-range']:
-                    coordinate_dict['y-range'] = dif
-                top_y = 0
-                    
-            #Name
-             if obj['x0'] > page.width * .05 and obj['x0'] < page.width * .10 and len(obj['text']) > 3:
-                 if coordinate_dict['name'] == 0:
-                     coordinate_dict['name'] = obj['x0']
-                     coordinate_dict['name_end'] = obj['x1']
-                 elif coordinate_dict['name'] > obj['x0']:
-                    coordinate_dict['name'] = obj['x0']
-                 elif coordinate_dict['name_end'] < obj['x1']:
-                    coordinate_dict['name_end'] = obj['x1']
-                    #coordinates_fun(obj, 'name')
-                
-            #Dates 
-             if obj['x0'] > page.width * .8:
-                try:
-                    match = re.search(r"\b\d{1,2}/\d{1,2}/\d{4}\b", obj['text'])
-                    if match:
-                        coordinate_dict['d_top'] = obj['top']
-                        coordinate_dict['d_bottom'] = obj['bottom']
-                        #print(obj['text'], obj['x0'], obj['x1'])
-                        if coordinate_dict['open'] == 0:
-                            coordinate_dict['open'] = obj['x0']
-                            coordinate_dict['close'] = obj['x1']
-                            #coordinates_fun(obj, 'date')
-                        elif coordinate_dict['open'] > obj['x0']:
-                            coordinate_dict['open'] = obj['x0']
-                            coordinate_dict['close'] = obj['x1']
-                            #coordinates_fun(obj, 'date')
-                except:
-                    continue
-        print('77777777777777777777777777777777777', coord_list_fun())
         print('COORDINATE DICTIONARY',coordinate_dict)
+        st.write('Coordinates')
+        st.write(coordinate_dict)
         # coordinate_dict= {'foia': 19.84, 'open': 685.4, 'close': 718.579757588}
+
+        # Search dates, find out of range
         date_obj = {'foia':"", 'name': "", 'open': None, 'close': None, 'report': '10/01/2024', 'page': page.page_number, 'top': 0, 'bottom': 0}
 
         date_list = []
 
         for page in pdf.pages:
+
 
             date_obj_list = page.extract_words()
 
@@ -144,7 +80,6 @@ if uploaded_file is not None:
                         # check match and range, check for close date
                         # if get to date and FOIA is missing, make FOIA Missing and attach
                         
-                        # print('before', date_obj, match_close)
                         if match:
                             date_obj['open'] = match.group()
                             date_obj['top'] = obj['top']
@@ -169,34 +104,35 @@ if uploaded_file is not None:
         # df_date = pd.DataFrame(date_list)
         # st.dataframe(df_date)
 
+        # Add FOIA number and name to out of range dates.
+
         #foia_late
         for item in foia_late:
             page = pdf.pages[item['page'] - 1]
 
             word_obj_list = page.extract_words()
 
-            # current_items = []
-            # for element in foia_late:
-            #     if element.page == item.page:
-            #         current_items.append(element)
+            coordinate_page = coord_page(word_obj_list, page)
+
             foia_id = ''
             for obj in word_obj_list:
-                # find Foia num
-                #if obj['text'][0] == 'F':
-                    #print('66666', obj)
                 
-                if obj['bottom'] > item['top'] and obj['top'] < (item['top'] + 7) and obj['x0'] < coordinate_dict['name'] and obj['text'][0] == 'F' and obj['text'][1] == '-':
-                    #print('in FOIA ', obj)
+                if obj['bottom'] < (item['top'] + 7) and obj['top'] > (item['top'] - 7) and obj['x0'] < coordinate_page['name'] and not obj['text'][0].isdigit():
+                    print('8888', obj['text'] )
                     foia_id = obj['text']
-                if obj['top'] < item['bottom'] and obj['bottom'] < (item['bottom'] + 7) and obj['x0'] < coordinate_dict['name'] and obj['text'][0].isdigit():
+                if obj['top'] < item['bottom'] and obj['bottom'] < (item['bottom'] + 7) and obj['x0'] < coordinate_page['name'] and obj['text'][0].isdigit():
                     foia_2 = obj['text']
                     item['foia'] = foia_id + foia_2
-                #Name
-                if obj['bottom'] < (item['top'] + 13) and obj['top'] < (item['top'] + 7) and obj['x0'] > coordinate_dict['name'] and obj['x0'] > coordinate_dict['name'] and obj['x0'] < coordinate_dict['name_end']:
-                    print('NAME', obj['text'])
-                    item['name'] = obj['text']
 
-        st.write('Updated Late')
+                # check bottom range
+                if obj['bottom'] < (item['top'] + 13) and obj['top'] > (item['top'] - 7) and obj['x0'] > coordinate_page['name'] and obj['x0'] < coordinate_page['name_end']:
+                    if item['name'] == '':
+                        item['name'] = obj['text']
+                    else:
+                        item['name'] = item['name'] + obj['text']
+                    
+
+        st.write('Updated Out of Range')
         df_date_late = pd.DataFrame(foia_late)
         st.dataframe(df_date_late)
 
@@ -223,7 +159,6 @@ if uploaded_file is not None:
                         if f_obj['open'] != None or f_obj['close'] != None:
                             # ADD END OF NAME, SO DOES NOT RUN OVER
                             
-                            # print('complete', f_obj), check to see if close exists
                             foia_list.append(f_obj.copy())
                             if f_obj['close'] != None and f_obj['close'] < f_obj['report']:
                                      foia_late.append(f_obj.copy())
@@ -264,58 +199,7 @@ if uploaded_file is not None:
                     except:
                         pass
                     
-                # elif obj['x0'] >= coordinate_dict['close']:
-                #     # print('close', coordinate_dict['open'], 'x0', obj['x0'], obj['text'])
-                #     try:
-                #         datetime.strptime(obj['text'], "%m/%d/%Y")
-                #         f_obj['close'] = obj['text']
-                #         #print('inside close', obj['text'], {f_obj})
-                        
-
-                    # except:
-                    #     continue
-                    
                 continue
-    dfl = pd.DataFrame(foia_late)
-    st.dataframe(dfl)
+  
     df = pd.DataFrame(foia_list)
     st.dataframe(df)
-                   
-
-
-    #     #replace whitespace with underline
-    #     text_under = raw_text.replace(' ', '_')
-    #     st.text(text_under)
-    #     #split at end of line
-    #     lines = raw_text.split('\n')
-        
-    #     for line in lines:
-    #             st.text(line)
-    #             #if line starts with F- put into a list with 12 items, starting at 0
-    #             #in most cases will be 7 items the other 5 will be added later
-    #             foia_list =  [None] * 12
-    #             if line[0] == 'F' and line[1] == '-':
-    #                  f_num_start = line.split()[0]
-    #                 # print('f_num',f_num_start)
-    #                  st.text(type(line))
-
-    #             #if the row ends in date format, check to see if a date preceeds that date
-
-    #             #ch
-
-    #             columns = re.split(r'\s{2,}', line.strip())
-                
-    #             if len(columns) >= 1:
-    #                 all_rows.append(columns)
-
-    # if all_rows:
-    #     # Try to create a DataFrame
-    #     try:
-    #         df = pd.DataFrame(all_rows)
-
-    #         st.subheader("Extracted Table from PDF (Text Split by Spaces):")
-    #         st.dataframe(df)
-    #     except Exception as e:
-    #         st.error(f"Failed to create table: {e}")
-    # else:
-    #     st.warning("No table found on the first page.")
