@@ -55,7 +55,13 @@ if uploaded_file is not None:
             'name_end': 0,
             'open': 0,
             'close': 0,
-            'y-range': 0
+            'y-range': 0,
+            'f_top':0,
+            'f_bottom':0,
+            'n_top':0,
+            'n_bottom':0,
+            'd_top':0,
+            'd_bottom':0,
             }
         #find coordinates 
         top_y = 0
@@ -65,6 +71,8 @@ if uploaded_file is not None:
              # if the string in obj['text'] begins with 'F-'
              if obj['text'][0] == 'F' and obj['text'][1] == '-':
                 top_y = obj['top']
+                coordinate_dict['f_top'] = obj['top']
+                coordinate_dict['f_bottom'] = obj['bottom']
              #save text and coordinate into a list
                 if coordinate_dict['foia'] == 0:
                     coordinate_dict['foia'] = obj['x0']
@@ -75,6 +83,8 @@ if uploaded_file is not None:
 
              # find y-range
              if coordinate_dict['foia'] != 0 and top_y != 0 and abs(obj['x0'] - coordinate_dict['foia']) < 2 and obj['text'][0].isdigit():
+                coordinate_dict['n_top'] = obj['top']
+                coordinate_dict['n_bottom'] = obj['bottom']
                 dif = obj['bottom'] - top_y
                 if coordinate_dict['y-range'] == 0:
                     coordinate_dict['y-range'] = dif
@@ -98,6 +108,8 @@ if uploaded_file is not None:
                 try:
                     match = re.search(r"\b\d{1,2}/\d{1,2}/\d{4}\b", obj['text'])
                     if match:
+                        coordinate_dict['d_top'] = obj['top']
+                        coordinate_dict['d_bottom'] = obj['bottom']
                         #print(obj['text'], obj['x0'], obj['x1'])
                         if coordinate_dict['open'] == 0:
                             coordinate_dict['open'] = obj['x0']
@@ -112,13 +124,91 @@ if uploaded_file is not None:
         print('77777777777777777777777777777777777', coord_list_fun())
         print('COORDINATE DICTIONARY',coordinate_dict)
         # coordinate_dict= {'foia': 19.84, 'open': 685.4, 'close': 718.579757588}
-        f_obj_reset = {'foia':"", 'name': "", 'open': None, 'close': None, 'report': '10/01/2024', 'page': page.page_number, 'top': 0}
-    
+        date_obj = {'foia':"", 'name': "", 'open': None, 'close': None, 'report': '10/01/2024', 'page': page.page_number, 'top': 0, 'bottom': 0}
+
+        date_list = []
+
+        for page in pdf.pages:
+
+            date_obj_list = page.extract_words()
+
+            for idx, obj in enumerate(date_obj_list):
+
+                if obj['x0'] >= (coordinate_dict['open'] - 1) and obj['x0'] < coordinate_dict['close']:
+                    
+                    try:
+                        match = re.search(r"\b\d{1,2}/\d{1,2}/\d{4}", obj['text']) # match open date
+                        if (date_obj_list[idx + 1]['x0'] > coordinate_dict['close']) and (round(date_obj_list[idx + 1]['top']) == round(obj['top'])): # if close date exist, match it
+                            match_close = re.search(r"\b\d{1,2}/\d{1,2}/\d{4}", date_obj_list[idx + 1]['text']) 
+
+                        # check match and range, check for close date
+                        # if get to date and FOIA is missing, make FOIA Missing and attach
+                        
+                        # print('before', date_obj, match_close)
+                        if match:
+                            date_obj['open'] = match.group()
+                            date_obj['top'] = obj['top']
+                            date_obj['page'] = page.page_number
+        
+                            if match_close:
+                                date_obj['close'] = match_close.group()
+                                if date_obj['close'] < date_obj['report']:
+                                    date_obj['bottom'] = obj['bottom']
+                                    foia_late.append(date_obj.copy())
+                                    match_close = None
+                            # push 
+                            date_list.append(date_obj.copy())
+                            #reset date_obj
+                            date_obj = {'foia':"", 'name': "", 'open': None, 'close': None, 'report': '10/01/2024', 'page': page.page_number, 'top': 0, 'bottom': 0} 
+                    except:
+                        pass
+                continue
+
+        df_date_late = pd.DataFrame(foia_late)
+        st.dataframe(df_date_late)
+        # df_date = pd.DataFrame(date_list)
+        # st.dataframe(df_date)
+
+        #foia_late
+        for item in foia_late:
+            page = pdf.pages[item['page'] - 1]
+
+            word_obj_list = page.extract_words()
+
+            # current_items = []
+            # for element in foia_late:
+            #     if element.page == item.page:
+            #         current_items.append(element)
+            foia_id = ''
+            for obj in word_obj_list:
+                # find Foia num
+                #if obj['text'][0] == 'F':
+                    #print('66666', obj)
+                
+                if obj['bottom'] > item['top'] and obj['top'] < (item['top'] + 7) and obj['x0'] < coordinate_dict['name'] and obj['text'][0] == 'F' and obj['text'][1] == '-':
+                    #print('in FOIA ', obj)
+                    foia_id = obj['text']
+                if obj['top'] < item['bottom'] and obj['bottom'] < (item['bottom'] + 7) and obj['x0'] < coordinate_dict['name'] and obj['text'][0].isdigit():
+                    foia_2 = obj['text']
+                    item['foia'] = foia_id + foia_2
+                #Name
+                if obj['bottom'] < (item['top'] + 13) and obj['top'] < (item['top'] + 7) and obj['x0'] > coordinate_dict['name'] and obj['x0'] > coordinate_dict['name'] and obj['x0'] < coordinate_dict['name_end']:
+                    print('NAME', obj['text'])
+                    item['name'] = obj['text']
+
+        st.write('Updated Late')
+        df_date_late = pd.DataFrame(foia_late)
+        st.dataframe(df_date_late)
+
+
+
         for page in pdf.pages:
             text = page.extract_text()
+
             
             word_obj_list = page.extract_words()
             f_obj = {'foia':"", 'name': "", 'open': None, 'close': None, 'report': '10/01/2024', 'page': page.page_number, 'top': 0}
+            f_obj['page'] = page.page_number
             for idx, obj in enumerate(word_obj_list): 
                 if abs(obj['x0'] - coordinate_dict['foia']) <= 2:
                     if len(obj['text']) > 4 and not obj['text'][0].isdigit():
