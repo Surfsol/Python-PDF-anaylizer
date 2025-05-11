@@ -5,6 +5,8 @@ import io
 import re
 from datetime import datetime
 from coordinates import coord_page
+from db import save_to_sqlite
+from db import fetch_all_data
 
 #from pdf_parser import parse_pdf_to_table
 
@@ -134,6 +136,20 @@ if uploaded_file is not None:
         st.write('Updated Out of Range')
         df_date_late = pd.DataFrame(foia_late)
         st.dataframe(df_date_late)
+
+       
+        
+        if foia_late:
+            result = save_to_sqlite(foia_late)
+            print('result', result)
+            if result > 0:
+                st.write(f"✅ {result} record(s) uploaded successfully!")
+            else:
+                st.write(f"❌ Upload failed: {result}")
+
+        all_data_df = fetch_all_data()
+        st.subheader('Data from database')
+        st.dataframe(all_data_df)
 
 
 
