@@ -152,7 +152,6 @@ if uploaded_file is not None:
         st.dataframe(all_data_df)
 
 
-
         for page in pdf.pages:
             text = page.extract_text()
 
