@@ -7,6 +7,7 @@ from datetime import datetime
 from coordinates import coord_page
 from db import save_to_sqlite
 from db import fetch_all_data
+import base64
 
 #from pdf_parser import parse_pdf_to_table
 
@@ -16,6 +17,52 @@ st.write("Max upload size (MB):", st.get_option("server.maxUploadSize"))
 st.title("PDF Data Extraction and Analysis App")
 
 uploaded_file = st.file_uploader("Upload a PDF", type=["pdf"])
+
+
+
+
+
+st.title("Base64 to PDF Decoder")
+
+# Show current upload size limit
+st.write("Max upload size (MB):", st.get_option("server.maxUploadSize"))
+
+# File uploader
+uploaded_base64_file = st.file_uploader("Upload base64 file (.txt)", type=["txt"])
+
+if uploaded_base64_file is not None:
+    # Read and decode base64 data
+    raw_text = uploaded_base64_file.read().decode("utf-8")  # decode bytes to string
+    base64_data = "".join(raw_text.strip().splitlines())
+
+    # Fix base64 padding
+    missing_padding = len(base64_data) % 4
+    if missing_padding:
+        base64_data += '=' * (4 - missing_padding)
+
+    try:
+        # First decode and write the PDF to disk
+        with open("decoded_foia.pdf", "wb") as outfile:
+            outfile.write(base64.b64decode(base64_data))
+
+        # Then reopen it in binary mode for the download button
+        with open("decoded_foia.pdf", "rb") as f:
+            st.download_button(
+                label="Download decoded PDF",
+                data=f,
+                file_name="decoded_foia_64.pdf",
+                mime="application/pdf"
+            )
+
+        st.success("PDF successfully decoded and saved as 'decoded_foia.pdf'")
+    except Exception as e:
+        st.error(f"Failed to decode PDF: {e}")
+
+    
+
+
+
+
 
 #list to capture foia
 foia_list = []
