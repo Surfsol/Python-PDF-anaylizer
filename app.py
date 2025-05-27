@@ -7,6 +7,7 @@ from datetime import datetime
 from coordinates import coord_page
 from db import save_to_sqlite
 from db import fetch_all_data
+from find_text_images import text_images
 import base64
 
 #from pdf_parser import parse_pdf_to_table
@@ -59,7 +60,13 @@ if uploaded_base64_file is not None:
         st.error(f"Failed to decode PDF: {e}")
 
     
+st.title("PDF find Text and Images")
 
+# File uploader
+uploaded_text_pdf = st.file_uploader("Upload pdf", type=["pdf"])
+
+if uploaded_text_pdf is not None: 
+    text_images(uploaded_text_pdf)
 
 
 
