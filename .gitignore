@@ -17,3 +17,5 @@ __pycache__/
 
 # Ignore environment variables file (if you ever create one)
 .env
+
+decoded_foia_*
