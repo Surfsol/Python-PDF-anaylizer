@@ -83,3 +83,5 @@ venv\Scripts\activate
    ```bash
    python -m streamlit run app.py
    ```
+5. **If get error ModuleNotFoundError: No module named 'fitz'**
+   pip install PyMuPDF
