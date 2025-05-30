@@ -9,6 +9,8 @@ from db import save_to_sqlite
 from db import fetch_all_data
 from find_text_images import text_images
 from base64_fun import base64_decoder
+from spoof_checker import parse_headers
+from spoof_checker import non_ascii_fun
 
 
 #from pdf_parser import parse_pdf_to_table
@@ -28,6 +30,29 @@ st.title("PDF find Text and Images")
 uploaded_text_pdf = st.file_uploader("Upload pdf", type=["pdf"])
 if uploaded_text_pdf is not None: 
     text_images(uploaded_text_pdf)
+
+
+st.title("Analyze Email Headers")
+# File uploader
+uploaded_raw_headers = st.text_area("Paste raw email headers here", height=300)
+if uploaded_raw_headers is not None: 
+    result = parse_headers(uploaded_raw_headers)
+    st.subheader("Parsed Header Information")
+    for key, value in result.items():
+        if isinstance(value, list):
+            st.markdown(f"**{key}:**")
+            for i, item in enumerate(value, 1):
+                st.markdown(f"{i}. {item}")
+        else:
+            st.markdown(f"**{key}:** {value}")
+    
+    non_ascii = non_ascii_fun(result)
+    if non_ascii:
+        for field, content in non_ascii.items():
+            st.warning("🚨 Non-ASCII characters found in these fields:")
+            st.code(f"{field}: {content}")
+    elif non_ascii == {}:
+        st.warning("✅ All characters are ASCII")
 
 
 st.write("Max upload size (MB):", st.get_option("server.maxUploadSize"))
