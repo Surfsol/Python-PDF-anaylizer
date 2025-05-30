@@ -57,9 +57,5 @@ def text_images(pdf_file):
             "Text": text
         })
 
-        #print(f"--- Page {page_num} ---")
-        #print(f"Text layer present: {'✅ Yes' if text.strip() else '❌ No'}")
-        #print(f"Number of images: {len(images)}")
-
     df = pd.DataFrame(results)
     st.dataframe(df)
