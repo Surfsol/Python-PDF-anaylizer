@@ -12,6 +12,7 @@ from base64_fun import base64_decoder
 from malware_detect.pdfid import PDFiD
 from spoof_checker import parse_headers, parse_sent_headers
 from spoof_checker import non_ascii_fun
+from extract_mal import detect_malware
 import xml.dom.minidom
 
 #from pdf_parser import parse_pdf_to_table
@@ -26,46 +27,11 @@ if uploaded_base64_file is not None:
     base64_decoder(uploaded_base64_file)
 
 
-st.title("Analze PDF for Malware")
+st.title("Detect PDF for Malware")
 # File uploader
 uploaded_pdf_malware = st.file_uploader("Upload PDF file for Malware (.pdf)", type=["pdf"])
 if uploaded_pdf_malware is not None:
-    print('55555555555555')
-
-    # Save the uploaded PDF to a temporary file (required by PDFiD)
-    with open("temp_uploaded.pdf", "wb") as f:
-        f.write(uploaded_pdf_malware.read())
-
-    # Get the XML DOM from PDFiD
-    xml_dom = PDFiD("temp_uploaded.pdf")
-
-    # Extract keyword counts
-    keywords = xml_dom.getElementsByTagName("Keyword")
-    data = []
-    for keyword in keywords:
-        name = keyword.getAttribute("Name")
-        count = int(keyword.getAttribute("Count"))
-        if count > 0:  # Only show relevant ones
-            data.append((name, count))
-
-    if data:
-        df = pd.DataFrame(data, columns=["Keyword", "Count"])
-        st.subheader("Suspicious PDF Features Detected")
-        st.dataframe(df)
-
-        # Check for warning-level keywords
-        flagged = []
-        for keyword, count in data:
-            if keyword in ["/AA", "/AcroForm"]:
-                flagged.append(f"{keyword} (count: {count})")
-
-        if flagged:
-            st.warning(f"⚠️ Detected potentially risky features: {', '.join(flagged)}. "
-                    "These are often used in interactive or auto-triggered PDFs. "
-                    "You may want to inspect the actions they perform using pdf-parser.py.")
-        
-    else:
-        st.success("✅ No suspicious keywords found in the PDF.")
+    detect_malware(uploaded_pdf_malware)
 
     
 st.title("PDF find Text and Images")
@@ -87,7 +53,6 @@ if uploaded_raw_headers is not None:
             # for i, item in enumerate(value, 1):
             #     st.markdown(f"{i}. {item}")
         else:
-            print('in else', key, value)
             st.markdown(f"**{key}:** {value}")
     if result['Return-Path'] != '':
         checked_all = non_ascii_fun(result)
@@ -106,7 +71,6 @@ if uploaded_sent_headers is not None:
     
 
 
-st.write("Max upload size (MB):", st.get_option("server.maxUploadSize"))
 st.title("PDF Data Extraction and Analysis App")
 uploaded_file = st.file_uploader("Upload a PDF", type=["pdf"])
 
@@ -128,8 +92,6 @@ if uploaded_file is not None:
 
 
     all_rows = []
-    
-    print('NEWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW')
 
     # Open with pdfplumber
     with pdfplumber.open(pdf_file) as pdf:
@@ -142,9 +104,6 @@ if uploaded_file is not None:
 
         # Extract word object from the page
         word_obj_list = page.extract_words()
-
-        
-       # 33333 Each page need to run 
 
         coordinate_dict = coord_page( word_obj_list, page)
 
