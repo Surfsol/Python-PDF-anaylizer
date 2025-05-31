@@ -12,7 +12,7 @@ from base64_fun import base64_decoder
 from malware_detect.pdfid import PDFiD
 from spoof_checker import parse_headers, parse_sent_headers
 from spoof_checker import non_ascii_fun
-from extract_mal import detect_malware
+from extract_mal import detect_malware, extract_pdf_object_with_mal, get_pdf_object_details, inspect_mal_location
 import xml.dom.minidom
 
 #from pdf_parser import parse_pdf_to_table
@@ -33,6 +33,28 @@ uploaded_pdf_malware = st.file_uploader("Upload PDF file for Malware (.pdf)", ty
 if uploaded_pdf_malware is not None:
     detect_malware(uploaded_pdf_malware)
 
+st.title("Get Malware IDs")
+# File uploader
+pdf_malware_id = st.file_uploader("Upload PDF file for Malware IDs (.pdf)", type=["pdf"])
+if pdf_malware_id is not None:
+    extract_pdf_object_with_mal(pdf_malware_id)
+
+
+st.title("Inspect Malware ID")
+# File uploader
+uploaded_pdf = st.file_uploader("Upload PDF")
+object_id = st.number_input("Enter object ID", min_value=0, step=1)
+
+if st.button("Inspect Object"):
+    if uploaded_pdf:
+        output = get_pdf_object_details(uploaded_pdf, object_id)
+        st.code(output, language="text")
+
+st.title("Inspect Malware Location")
+# File uploader
+uploaded_mal_pdf = st.file_uploader("Upload PDF to Inspect Location(.pdf)", type=["pdf"])
+if uploaded_mal_pdf is not None:
+    inspect_mal_location(uploaded_mal_pdf)
     
 st.title("PDF find Text and Images")
 # File uploader

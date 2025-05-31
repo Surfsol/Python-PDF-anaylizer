@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 load_dotenv()
 folder = os.getenv("DOWNLOAD_FOLDER")
 
+malicious_keywords = ["/Acroform", "/JavaScript", "/Launch", "/AA", "/OpenAction", "/SubmitForm", "/XFA"]
+results = []
 
 def text_images(pdf_file):
     # Reads the content into memory as bytes.
@@ -20,8 +22,12 @@ def text_images(pdf_file):
         text = page.get_text()
         images = page.get_images(full=True) # full=True return detailed info for each image.
         jpx = ''
+        flags = []
 
-       
+        for kw in malicious_keywords:
+            if kw in text:
+                flags.append(kw)
+
         output_dir = folder
         os.makedirs(output_dir, exist_ok=True)
 
@@ -31,22 +37,19 @@ def text_images(pdf_file):
         #List images
         for i, img in enumerate(images):
             xref = img[0] # get unique image number
-        
             image_info = doc.extract_image(xref) #get image bytes and metadata
             image_bytes = image_info["image"]
             image_ext = image_info["ext"]
-            print('image', image_ext)
             if image_ext == 'jpx':
                 jpx = 'T'
-
-
+            
 
             filename = f"page{page_num}_image{i + 1}.{image_ext}"
             filepath = os.path.join(output_dir, filename)
             
             # Comment out when you do not want to write the images to a file
-            with open(filepath, "wb") as f:
-                f.write(image_bytes)
+            # with open(filepath, "wb") as f:
+            #     f.write(image_bytes)
 
             #print(f"Saved image: {filepath}")
 
@@ -54,7 +57,8 @@ def text_images(pdf_file):
             "Page": page_num,
             "Image Count": len(images),
             "JPX": jpx,
-            "Text": text
+            "Text": text,
+            "Flags": ", ".join(flags) if flags else ""
         })
 
     df = pd.DataFrame(results)

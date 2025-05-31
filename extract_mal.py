@@ -5,45 +5,75 @@ import xml.dom.minidom
 import subprocess
 from malware_detect.pdfid import PDFiD
 
-def extract_pdf_object_with_mal(pdf_path, flagged):
+def extract_pdf_object_with_mal(uploaded_pdf):
+    if uploaded_pdf is not None:
+        # Save PDF to disk for tools that require file path
+        pdf_path = "temp_uploaded.pdf"
+        with open(pdf_path, "wb") as f:
+            f.write(uploaded_pdf.read())
     object_ids = []
-    for id in flagged:
-        try:
-            print('34r345', id)
-            result = subprocess.run(
-                ['python', 'malware_detect/pdf-parser.py', pdf_path, '-s', '/AA'],
-                capture_output=True,
-                text=True
-            )
-            print('899RESULLLLLLTTTTS'.result)
-            output = result.stdout.strip()
-            
-            for line in output.splitlines():
-                if line.startswith('obj '):
-                    parts = line.split()
-                    if len(parts) >= 2 and parts[1].isdigit():
-                        object_ids.append(parts[1])
+  
+    try:
+        result = subprocess.run(
+            ['python', 'malware_detect/pdf-parser.py', pdf_path, '-s', '/Launch'],
+            capture_output=True,
+            text=True
+        )
+        output = result.stdout.strip()
         
-        except Exception as e:
-            return [f"Error running pdf-parser: {e}"]
-    print('Idssssssssss', object_ids)
+        for line in output.splitlines():
+            if line.startswith('obj '):
+                parts = line.split()
+                if len(parts) >= 2 and parts[1].isdigit():
+                    object_ids.append(parts[1])
+    
+    except Exception as e:
+        return [f"Error running pdf-parser: {e}"]
     return object_ids
         
 
 
 # --- Helper: Inspect full object contents
-def get_pdf_object_details(pdf_path, object_id):
-    print('objectttt list line 36', object_id)
+def get_pdf_object_details(uploaded_pdf, object_id):
+    print('Object ID:', object_id)
+
+    # Save uploaded file to disk
+    pdf_path = "temp_uploaded.pdf"
+    if uploaded_pdf is not None:
+        with open(pdf_path, "wb") as f:
+            f.write(uploaded_pdf.read())
+
     try:
         result = subprocess.run(
-            ['python', 'malware_detect/pdf-parser.py', pdf_path, '-o', object_id, '-d'],
+            ['python', 'malware_detect/pdf-parser.py', pdf_path, '-s', '/Fields'],
             capture_output=True,
             text=True
         )
-        print('9999999999', result)
         return result.stdout
     except Exception as e:
         return f"Error reading object {object_id}: {e}"
+    
+def inspect_mal_location(pdf):
+    if pdf is not None:
+        # Save uploaded PDF to disk
+        with open("temp_uploaded.pdf", "wb") as out_file:
+            out_file.write(pdf.read())
+
+        # Now read it back as binary
+        with open("temp_uploaded.pdf", "rb") as f:
+            content = f.read()
+
+        # Search for the object by ID
+        location = content.find(b"652 0 obj")
+        if location != -1:
+            print(f"Object 652 found at byte offset: {location}")
+            return location
+        else:
+            print("Object 652 not found.")
+            return None
+
+
+
 
 
 def detect_malware(uploaded_pdf_malware):
