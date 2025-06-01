@@ -31,6 +31,7 @@ def base64_decoder(uploaded_base64_file):
                 file_name= filename,
                 mime="application/pdf"
             )
+        
 
         st.success("PDF successfully decoded and saved as 'decoded_foia.pdf'")
     except Exception as e:

@@ -14,6 +14,7 @@ from spoof_checker import parse_headers, parse_sent_headers
 from spoof_checker import non_ascii_fun
 from extract_mal import detect_malware, extract_pdf_object_with_mal, get_pdf_object_details, inspect_mal_location
 import xml.dom.minidom
+from exif import run_exiftool_on_folder
 
 #from pdf_parser import parse_pdf_to_table
 
@@ -61,6 +62,11 @@ st.title("PDF find Text and Images")
 uploaded_text_pdf = st.file_uploader("Upload pdf", type=["pdf"])
 if uploaded_text_pdf is not None: 
     text_images(uploaded_text_pdf)
+
+st.title("Run Exiftool on Images")
+if st.button("Run Exiftool"):
+    run_exiftool_on_folder()
+
 
 
 st.title("Received Email Headers")
