@@ -20,8 +20,6 @@ from exif import run_exiftool_on_folder
 
 
 st.title("Base64 to PDF Decoder")
-# Show current upload size limit
-st.write("Max upload size (MB):", st.get_option("server.maxUploadSize"))
 # File uploader
 uploaded_base64_file = st.file_uploader("Upload base64 file (.txt)", type=["txt"])
 if uploaded_base64_file is not None:
