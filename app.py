@@ -10,8 +10,7 @@ from db import fetch_all_data
 from find_text_images import text_images
 from base64_fun import base64_decoder
 from malware_detect.pdfid import PDFiD
-from spoof_checker import parse_headers, parse_sent_headers
-from spoof_checker import non_ascii_fun
+from spoof_checker import parse_headers, parse_sent_headers, non_ascii_fun
 from extract_mal import detect_malware, extract_pdf_object_with_mal, get_pdf_object_details, inspect_mal_location
 import xml.dom.minidom
 from exif import run_exiftool_on_folder
@@ -76,8 +75,6 @@ if uploaded_raw_headers is not None:
     for key, value in result.items():
         if isinstance(value, list):
             st.markdown(f"**{key}:**")
-            # for i, item in enumerate(value, 1):
-            #     st.markdown(f"{i}. {item}")
         else:
             st.markdown(f"**{key}:** {value}")
     if result['Return-Path'] != '':

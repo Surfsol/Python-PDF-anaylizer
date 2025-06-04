@@ -4,10 +4,12 @@ import re
 
 
 non_ascii_dict = {}
+items_passed = []
 
 def is_ascii(s):
     try:
         s.encode('ascii')
+        items_passed.append(s)
         return True
     except UnicodeEncodeError:
         return False
@@ -30,7 +32,9 @@ def non_ascii_fun(obj):
             st.warning("🚨 Non-ASCII characters found in these fields:")
             st.code(f"{field}: {content}")
     elif checked > 0 and non_ascii_dict == {}:
-        st.warning(f"✅ {checked} All characters are ASCII")
+        st.warning(f"✅ All {checked} addresses characters are ASCII")
+        for item in items_passed:
+            st.markdown(item)
     return non_ascii_dict
 
 
